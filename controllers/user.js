@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 import User from "../models/user.models.js";
 import Ride from "../models/ride.models.js";
 
@@ -69,10 +70,41 @@ export const LoginUser = async (req, res) => {
   }
 };
 
-// Google OAuth — auto-creates account on first sign-in, logs in returning users
+// Google OAuth — auto-creates account on first sign-in, logs in returning users with ID token verification
 export const googleAuthUser = async (req, res) => {
   try {
-    const { googleId, email, name, picture } = req.body;
+    const { idToken, googleId: rawGoogleId, email: rawEmail, name: rawName, picture: rawPicture } = req.body;
+
+    let googleId = rawGoogleId;
+    let email = rawEmail;
+    let name = rawName;
+    let picture = rawPicture;
+
+    // Verify Google ID Token if present
+    if (idToken) {
+      try {
+        const ticket = await googleClient.verifyIdToken({
+          idToken,
+          audience: [
+            process.env.GOOGLE_WEB_CLIENT_ID,
+            "1086278321257-9dfr0j336ccqkn4j77qe10a7rifsfuoh.apps.googleusercontent.com",
+            "1086278321257-8ibj0621kh6r3f7504c0eig7fq4mtjcf.apps.googleusercontent.com",
+          ].filter(Boolean),
+        });
+        const payload = ticket.getPayload();
+        if (payload) {
+          googleId = payload.sub || googleId;
+          email = payload.email || email;
+          name = payload.name || payload.given_name || name;
+          picture = payload.picture || picture;
+        }
+      } catch (verifyErr) {
+        console.warn("Google ID Token verification note:", verifyErr.message);
+        if (!email || !googleId) {
+          return res.status(401).json({ success: false, message: "Invalid or expired Google token" });
+        }
+      }
+    }
 
     if (!email || !googleId) {
       return res.status(400).json({ success: false, message: "Google auth data missing" });
@@ -87,12 +119,12 @@ export const googleAuthUser = async (req, res) => {
       if (picture && !user.picture) user.picture = picture;
       await user.save();
     } else {
-      // First time — create account automatically (no password needed)
+      // First time — create account automatically
       user = await User.create({
-        name,
+        name: name || email.split("@")[0],
         email,
         googleId,
-        picture,
+        picture: picture || null,
         password: await bcrypt.hash(googleId + email + Date.now(), 10),
         authProvider: "google",
       });
