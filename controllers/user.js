@@ -3,6 +3,12 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.models.js";
 import Ride from "../models/ride.models.js";
 
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_WEB_CLIENT_ID ||
+    ""
+);
+
+
 export const RegisterUser = async (req, res) => {
   try {
     const { name, email, password, phone, address } = req.body;
