@@ -10,7 +10,7 @@ try {
 
 const MongooseConnect = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI || "mongodb+srv://abhinavpandey09:abhinavpandey091@media.jfdiy0v.mongodb.net/mern-auth?retryWrites=true&w=majority&appName=USER_CAPTAIN";
+    const mongoUri = process.env.MONGO_URI || "";
     const connectDb = await mongoose.connect(mongoUri);
     console.log(`✅ MongoDB Atlas connected successfully: ${connectDb.connection.host}`);
   } catch (error) {
