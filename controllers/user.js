@@ -4,10 +4,6 @@ import { OAuth2Client } from "google-auth-library";
 import User from "../models/user.models.js";
 import Ride from "../models/ride.models.js";
 
-const googleClient = new OAuth2Client(
-  process.env.GOOGLE_WEB_CLIENT_ID ||
-    "1086278321257-9dfr0j336ccqkn4j77qe10a7rifsfuoh.apps.googleusercontent.com"
-);
 
 export const RegisterUser = async (req, res) => {
   try {
